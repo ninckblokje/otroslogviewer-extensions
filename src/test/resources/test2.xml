@@ -4,8 +4,8 @@
     <COMPONENT_ID>tip</COMPONENT_ID>
     <MSG_TYPE TYPE="ERROR"></MSG_TYPE>
     <MSG_LEVEL>1</MSG_LEVEL>
-    <HOST_ID>cwvwdo15.cwi.resultinfra.com</HOST_ID>
-    <HOST_NWADDR>10.20.157.205</HOST_NWADDR>
+    <HOST_ID>localhost</HOST_ID>
+    <HOST_NWADDR>127.0.0.1</HOST_NWADDR>
     <MODULE_ID>esb.server.dispatch.agent</MODULE_ID>
     <THREAD_ID>45</THREAD_ID>
     <USER_ID>oracle</USER_ID>
