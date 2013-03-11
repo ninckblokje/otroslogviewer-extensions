@@ -25,8 +25,11 @@
 
 package ninckblokje.otros.logviewer.importer;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,6 +37,7 @@ import javax.swing.Icon;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
+import ninckblokje.otros.logviewer.definition.Constants;
 import ninckblokje.otros.logviewer.sax.helpers.OC4JLogHandler;
 import org.xml.sax.SAXException;
 import pl.otros.logview.LogDataCollector;
@@ -73,11 +77,48 @@ public class OC4JLogImporter extends AbstractPluginableElement implements LogImp
     public void importLogs(InputStream is, LogDataCollector ldc, ParsingContext pc) {
         try {
             SAXParserFactory factory = SAXParserFactory.newInstance();
-            SAXParser parser = factory.newSAXParser();
 
             LOGGER.log(Level.FINER, "Parsing log file");
-            OC4JLogHandler handler = new OC4JLogHandler(ldc, pc);
-            parser.parse(is, handler);
+            
+            String endElement = "</" + Constants.MESSAGE_ELEMENT_NAME + ">";
+            String startElement = "<" + Constants.MESSAGE_ELEMENT_NAME + ">";
+            
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+            String line = null;
+            
+            StringBuilder builder = null;
+            while((line = reader.readLine()) != null) {
+                if(builder != null) {
+                    LOGGER.log(Level.FINEST, "Adding line [{0}]", line);
+                    builder.append(line);
+                }
+                
+                if(startElement.equals(line.trim())) {
+                    LOGGER.log(Level.FINEST, "Found start element in line [{0}]", line);
+                    builder = new StringBuilder();
+                    
+                    LOGGER.log(Level.FINEST, "Adding line [{0}]", line);
+                    builder.append(line);
+                }else if (endElement.equals(line.trim())) {
+                    LOGGER.log(Level.FINEST, "Found end element in line [{0}]", line);
+                    
+                    LOGGER.log(Level.FINER, "Parsing log entry");
+                    
+                    String entry = builder.toString();
+                    LOGGER.log(Level.FINEST, "Log entry XML [{0}]", entry);
+                    
+                    SAXParser parser = factory.newSAXParser();
+                    OC4JLogHandler handler = new OC4JLogHandler(ldc, pc);
+                    parser.parse(new ByteArrayInputStream(entry.getBytes()), handler);
+                    
+                    builder = null;
+                    LOGGER.log(Level.FINER, "Finished parsing log entry");
+                }
+            }
+            
+            reader.close();
+            
+            LOGGER.log(Level.FINER, "Finished parsing log file");
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE, "IOException", ex);
         } catch (ParserConfigurationException ex) {

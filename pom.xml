@@ -6,7 +6,15 @@
     <groupId>ninckblokje.otros.logviewer</groupId>
     <artifactId>otroslogviewer-extensions</artifactId>
     <version>0.1-SNAPSHOT</version>
-    <name>otroslogviewer-extensions</name>
+    <name>Otros log viewer extensions</name>
+    <url>https://github.com/ninckblokje/otroslogviewer-extensions</url>
+    
+    <licenses>
+        <license>
+            <name>The BSD 2-Clause License</name>
+            <url>http://opensource.org/licenses/BSD-2-Clause</url>
+        </license>
+    </licenses>
     
     <properties>
         <!-- add the property otros.logviewer.home (pointing to the install directory) in your Maven profile -->
@@ -55,6 +63,12 @@
             <groupId>net.jcip</groupId>
             <artifactId>jcip-annotations</artifactId>
             <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+            <version>2.6</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

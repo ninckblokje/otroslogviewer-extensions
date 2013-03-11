@@ -27,12 +27,13 @@ package ninckblokje.otros.logviewer.sax.helpers;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.jcip.annotations.NotThreadSafe;
+import ninckblokje.otros.logviewer.definition.Constants;
+import ninckblokje.otros.logviewer.definition.OC4JLogLevelEnum;
+import org.apache.commons.lang.StringUtils;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -49,13 +50,6 @@ public class OC4JLogHandler extends DefaultHandler {
 
     private static final Logger LOGGER = Logger.getLogger(OC4JLogHandler.class.getName());
     
-    private static final String MESSAGE_ELEMENT_NAME = "MESSAGE";
-    private static final String MSG_TXT_ELEMENT_NAME = "MSG_TEXT";
-    private static final String TSTZ_ORIGINATING_ELEMENT_NAME = "TSTZ_ORIGINATING";
-    
-    private static final List<String> MAPPLABLE_ELEMENTS = Arrays.asList(new String[] {MSG_TXT_ELEMENT_NAME, TSTZ_ORIGINATING_ELEMENT_NAME});
-    private static final String TSTZ_ORIGINATING_DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
-    
     private String currentElement = null;
     private LogData entry = null;
     private LogDataCollector ldc = null;
@@ -71,49 +65,67 @@ public class OC4JLogHandler extends DefaultHandler {
         int startIndex = value.lastIndexOf(":");
         value = value.substring(0, startIndex) + value.substring(startIndex + 1);
 
-        SimpleDateFormat format = new SimpleDateFormat(TSTZ_ORIGINATING_DATE_PATTERN);
+        SimpleDateFormat format = new SimpleDateFormat(Constants.TSTZ_ORIGINATING_DATE_PATTERN);
         return format.parse(value);
     }
 
     @Override
     public void characters(char ch[], int start, int length) throws SAXException {
+        String value = new String(ch, start, length);
         if (mapData
                 && currentElement != null) {
-            String value = new String(ch, start, length);
-            if (TSTZ_ORIGINATING_ELEMENT_NAME.equals(currentElement)) {
+            LOGGER.log(Level.FINEST, "Found value [{0}] for element [{1}]", new Object[] {value, currentElement});
+            
+            if (Constants.TSTZ_ORIGINATING_ELEMENT_NAME.equals(currentElement)) {
                 try {
                     entry.setDate(parseDate(value));
                 } catch (ParseException ex) {
                     LOGGER.log(Level.SEVERE, "ParseException while parsing date [" + value + "] from element [" + currentElement + "]", ex);
                 }
-            } else if (MSG_TXT_ELEMENT_NAME.equals(currentElement)) {
+            } else if (Constants.MSG_TXT_ELEMENT_NAME.equals(currentElement)) {
+                if(!StringUtils.isEmpty(entry.getMessage())) {
+                    value = entry.getMessage() + System.lineSeparator() + value;
+                }
                 entry.setMessage(value);
+            } else if (Constants.SUPPL_DETAIL_ELEMENT_NAME.equals(currentElement)) {
+                if(!StringUtils.isEmpty(entry.getMessage())) {
+                    value = entry.getMessage() + System.lineSeparator() + value;
+                }
+                entry.setMessage(value);
+            } else if (Constants.MSG_LEVEL_ELEMENT_NAME.equals(currentElement)) {
+                entry.setLevel(OC4JLogLevelEnum.getEnum(Integer.valueOf(value)).getLevel());
             }
+        } else {
+            LOGGER.log(Level.FINEST, "Ignoring value [{0}] for element [{1}]", new Object[] {value, currentElement});
         }
     }
 
     @Override
     public void endElement(String uri, String localName, String qName) throws SAXException {
-        currentElement = null;
-        mapData = Boolean.FALSE;
-
-        if (MESSAGE_ELEMENT_NAME.equals(localName)) {
+        LOGGER.log(Level.FINER, "End element with URI [{0}], local name [{1}] and QName [{2}]", new Object[] {uri, localName, qName});
+        
+        if (Constants.MESSAGE_ELEMENT_NAME.equals(currentElement)) {
             entry = null;
         }
+        
+        currentElement = null;
+        mapData = Boolean.FALSE;
     }
 
     @Override
     public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
-        currentElement = localName;
+        LOGGER.log(Level.FINER, "Start element with URI [{0}], local name [{1}] and QName [{2}]", new Object[] {uri, localName, qName});
+        
+        currentElement = (StringUtils.isEmpty(localName)) ? qName : localName;
         mapData = Boolean.FALSE;
 
-        if (MESSAGE_ELEMENT_NAME.equals(localName)) {
+        if (Constants.MESSAGE_ELEMENT_NAME.equals(currentElement)) {
             entry = new LogData();
             entry.setId(pc.getGeneratedIdAndIncrease());
             entry.setLogSource(pc.getLogSource());
 
             ldc.add(entry);
-        } else if (MAPPLABLE_ELEMENTS.contains(currentElement)) {
+        } else if (Constants.MAPPLABLE_ELEMENTS.contains(currentElement)) {
             mapData = Boolean.TRUE;
         }
     }
